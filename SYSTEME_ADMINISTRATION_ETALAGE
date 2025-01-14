@@ -1,0 +1,326 @@
+import numpy as np
+import plotly.graph_objects as go
+def regler_le_groupe_étape1(A):
+    if len(A) <= 1:
+        return A
+    mid = len(A) // 2
+    left_b = regler_le_groupe_étape1(A[:mid])
+    right_b = regler_le_groupe_étape1(A[mid:])
+    return regler_le_groupe_étape2(left_b, right_b)
+def regler_le_groupe_étape2(left, right):
+    groupe_reglé = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i]['priorité'] < right[j]['priorité']:
+            groupe_reglé.append(left[i])
+            i += 1
+        else:
+            groupe_reglé.append(right[j])
+            j += 1
+    groupe_reglé.extend(left[i:])
+    groupe_reglé.extend(right[j:])
+    return groupe_reglé
+def donner_priorité_A():
+    A = []
+    print("Format : 'élément priorité somme'. Tapez 'fini' pour terminer.")
+    while True:
+        catégorie = input("Entrez les détails : ")
+        if catégorie.lower() == 'fini':
+            break
+        try:
+            élément, priorité_valeur, somme = catégorie.split()
+            A.append({'name': élément, 'priorité': int(priorité_valeur), 'somme': float(somme)})
+        except ValueError:
+            print("Erreur de format. Veuillez réessayer.")
+    return A
+def modification_somme_des_catégorie(groupe_reglé):
+    print("Si vous devez ajouter ou modifier des catégories, format : 'élément priorité somme'.")
+    print("Tapez 'fini' pour terminer.")
+    G = []
+    while True:
+        modification_liste = input("Modifier : ")
+        if modification_liste.lower() == 'fini':
+            break
+        try:
+            élément, priorité_valeur, somme = modification_liste.split()
+            G.append({'name': élément, 'priorité': int(priorité_valeur), 'somme': float(somme)})
+        except ValueError:
+            print("Erreur de format. Veuillez réessayer.")
+    print("1. reorganiser tous les éléments")
+    print("2. extension avec le liste du present comme la base")
+    choice = input("veuillez choisir une opération que vous préferez")
+    
+    if choice == "1":
+        G = regler_le_groupe_étape1(G)
+        groupe_reglé.extend(G)
+        groupe_reglé = regler_le_groupe_étape1(groupe_reglé)
+    if choice == "2":
+        G = regler_le_groupe_étape1(G)
+        groupe_reglé.extend(G)
+    return groupe_reglé
+def modification_priorité_élément(groupe_reglé):
+    print("Si vous souhaitez modifier une priorité, entrez son nom.")
+    print("Tapez 'fini' pour terminer.")
+    while True:
+        élément = input("Nom de la catégorie à modifier : ")
+        found =  False
+        if élément.lower() == 'fini':
+            break
+        for item in groupe_reglé:
+            
+            if item['name'] == élément:
+                print(f"Élément trouvé : {item}")
+                found = True
+                try:
+                    modification = input("Voulez-vous modifier la priorité d'un élément ? : ").lower()
+                    if modification == 'oui':
+                        ancienne_priorité = item['priorité']
+                        priorité_nouvelle = int(input("Nouvelle priorité : "))
+                        item['priorité'] = priorité_nouvelle
+                        groupe_reglé = regler_le_groupe_étape1(groupe_reglé)
+                        print(f"Modification terminée : {item}")
+                        print(f"Ancienne priorité : {ancienne_priorité}")
+                    else:
+                        print("Aucune modification effectuée.")
+                except ValueError:
+                    print("Erreur : Veuillez entrer une valeur valide.")
+                
+            else:
+                continue
+        if not found:
+            print("élément demandé n'est pas dans le liste")
+            break
+    return groupe_reglé
+def organisation_éléments(groupe_reglé):
+     K = []
+     print("Entrez la somme de l'étalage de votre stockage et la taille de l'étalage.")
+     num_matrices = int(input("Somme des étalages : "))
+     matrix_size = int(input("Taille : "))
+     try:
+          matrices = [np.full((matrix_size, matrix_size), None, dtype=object) for _ in range(num_matrices)]
+     except ValueError:
+         print("Valeur non valide pour la taille de la matrice.")
+         return
+     current_matrix = 0
+     
+     for item in groupe_reglé:
+         somme_instant = item['somme']
+         while somme_instant > 0:
+             filled = False
+             for row in range(matrix_size - 1, -1, -1):
+                 for col in range(matrix_size):
+                     if matrices[current_matrix][row][col] is None:
+                         matrices[current_matrix][row][col] = {'name': item['name']}
+                         somme_instant -= 1
+                         filled = True
+                         if somme_instant == 0:
+                            break
+                     
+                 if somme_instant == 0:
+                     break
+             if not filled:
+                current_matrix += 1
+                if current_matrix >= num_matrices:
+                    print("Tout rempli.")
+                    break
+         if current_matrix >= num_matrices:
+             break
+     for item in groupe_reglé:
+         if item['somme'] > 0:
+             K.append(item)
+             regler_le_groupe_étape1(K)
+     return K, matrices, matrix_size, num_matrices
+def correspendance_étalage(matrices, num_matrices, matrix_size):
+    matrices_1 = [np.full((matrix_size, num_matrices), None, dtype=object) for _ in range(matrix_size)]
+    for row in range(matrix_size - 1, -1, -1):
+        for col in range(matrix_size):
+            for idx, matrix in enumerate(matrices):
+                if col <= num_matrices:
+                    matrices_1[col][row][idx] = matrix[row][col]
+    return matrices_1
+def changement_somme(groupe_reglé, matrices_1, matrix_size):
+    print("Entrez les changements de somme des éléments si nécessaire.")
+    print("Format : numéro, ligne, colonne, élément, changement de somme.")
+    print("Tapez 'fini' pour terminer.")
+    while True:
+        changement_somme = input("Oui ou non : ")
+        if changement_somme.lower() == 'non':
+            break
+        try:
+            row = int(input("Ligne : "))
+            col = int(input("Colonne : "))
+            numéro = int(input("Numéro : "))
+            élément = input("Nom : ")
+            if changement_somme.lower() == 'oui':
+                if 0 <= numéro < len(matrices_1) and 0 <= row < matrix_size and 0 <= col < matrix_size:
+                    cell_value = matrices_1[numéro][row][col]
+                    if cell_value is not None and isinstance(cell_value, dict) and cell_value.get('name') == élément:
+                        matrices_1[numéro][row][col] = None
+                        for item in groupe_reglé:
+                            if élément == item['name']:
+                                item['somme'] -= 1
+                    else:
+                        print("Erreur.")
+            else:
+                print("Situation non correspondue.")
+        except ValueError:
+            print("Erreur.")
+    else:
+        print("Erreur.")
+    return matrices_1, groupe_reglé
+def remplir_par_ceux_qui_restent(matrices_1, K, matrix_size, num_matrices):
+    if not K:
+        print("plus des éléments a remplir")
+    for row in range(matrix_size - 1, -1, -1):
+        for col in range(num_matrices):
+            for item in K:
+                somme_instant = item['somme']
+            if somme_instant == 0:
+                continue
+            try:
+                for matrix_1 in matrices_1:
+                    if matrix_1[row][col] is None and somme_instant >= 0:
+                        matrix_1[row][col] = {'name': item['name']}
+                        somme_instant -= 1
+                        if somme_instant == 0:
+                             break
+                item['somme'] = somme_instant
+            except ValueError:
+                print("Erreur.")
+            
+    for idx, matrix in enumerate(matrices_1):
+        print(f"Matrice{idx} : \n{matrix}")
+        print(K)
+    return matrices_1      
+def représentation_visuelle(matrices_1, matrix_size, num_matrices):
+    if not matrices_1 or len(matrices_1) == 0:
+        raise ValueError("error")
+    for matrix_idx, matrix in enumerate(matrices_1):
+        x = []
+        y = []
+        text = []
+        if matrix is None or np.all(matrix == None):
+            for row in range(matrix_size):
+                for col in range(num_matrices):
+                    cell_value = matrix[row][col]
+                    x.append(col)
+                    y.append(row)
+                    text.append(f"Vide({row}, {col}, M{matrix_idx})")
+        else:
+            for row in range(matrix_size):
+                for col in range(num_matrices):
+                    cell_value = matrix[row][col]
+                    x.append(col)
+                    y.append(row)
+                    if cell_value is None:
+                        text.append(f"Vide ({row}, {col}, M{matrix_idx})")
+                    elif isinstance(cell_value, dict):
+                        text.append(f"{cell_value['name']} ({row}, {col}, M{matrix_idx})")
+            fig = go.Figure(
+                data=go.Scatter(
+                    x=x,
+                    y=y,
+                    mode='markers+text',
+                    marker=dict(size=30, color='lightblue', line=dict(width=2, color='black')),
+                    text=text,
+                    textposition="top center",
+                    hoverinfo="text"
+                )
+            )
+            fig.update_layout(
+                title=f"{matrix_size} x {num_matrices} Visualisation interactive des étalages",
+                xaxis=dict(range=[-1, matrix_size], zeroline=False, showgrid=False, tickvals=list(range(matrix_size))),
+                yaxis=dict(range=[-1, num_matrices], zeroline=False, showgrid=False, tickvals=list(range(num_matrices)), autorange='reversed'),
+                showlegend=False,
+                height=600,
+                width=600,
+            )
+            fig.show()
+def main():
+    print("Bienvenue dans le système de gestion interactive des étalages !")
+    print("\n Entrez les priorités :")
+    groupe_reglé = donner_priorité_A()
+    print("\n Régler les données.")
+    groupe_reglé = regler_le_groupe_étape1(groupe_reglé)
+    print("Données triées :")
+    for item in groupe_reglé:
+        print(item)
+    
+    # Menu d'opérations
+    while True:
+        print("\nMenu d'opérations :")
+        print("0. Imprimer le liste des éléments")
+        print("1. organisation des éléments")
+        print("2. mappage des éléments")
+        print("3. Modifier les données dans la matrice")
+        print("4. Remplir les données restantes")
+        print("5. Générer une visualisation interactive")
+        print("6. Modifier les priorités des objets")
+        print("7. Modifier la somme des catégories des objets")
+        print("8. Quitter le programme")
+        choice = input("Veuillez sélectionner un numéro d'opération :")
+        try:
+            if choice == "0":
+                print(groupe_reglé)
+
+            if choice == "1":
+                print("\n Construction des relations avec les matrices.")
+                K, matrices, matrix_size, num_matrices = organisation_éléments(groupe_reglé)
+                print(f"Nombre d'éléments non attribués après la distribution initiale : {len(K)}")
+                for idx, matrix in enumerate(matrices):
+                    print(f"\nMatrice {idx} :")
+                    print(matrix)
+
+            if choice == "2":
+                
+                num_matrices = len(matrices)
+                try:
+                    matrices_1 = correspendance_étalage(matrices, num_matrices, matrix_size)
+                    print("Mappage des matrices terminé !")
+                    for idx, matrix in enumerate(matrices_1):
+                        print(f"\nMatrice mappée {idx} :")
+                        print(matrix)
+                except Exception as e:
+                    print(f"Erreur lors du mappage des matrices : {e}")
+                    return
+                
+            
+            if choice == "3":
+                print("\nModification des données dans la matrice...")
+                matrices_1, groupe_reglé = changement_somme(groupe_reglé, matrices_1, matrix_size)
+                print(groupe_reglé)
+                print(matrices_1)
+                print(K)
+                print("Modification terminée !")
+            elif choice == "4":
+                print("\nRemplissage des données restantes...")
+                matrices_1 = remplir_par_ceux_qui_restent(matrices_1, K, matrix_size, num_matrices)
+                
+                print("Remplissage terminé !")
+            elif choice == "5":
+                print("\nGénération de la visualisation interactive...")
+                représentation_visuelle(matrices_1, matrix_size, num_matrices)
+                print("Visualisation terminée !")
+            elif choice == "6":
+                print("Modification des priorités des objets....")
+                groupe_reglé = modification_priorité_élément(groupe_reglé)
+
+                
+                print(groupe_reglé)
+                print("Opération terminée.")
+            elif choice == "7":
+                print("Modification de la somme des catégories....")
+                groupe_reglé = modification_somme_des_catégorie(groupe_reglé)
+                print(groupe_reglé)
+                print("Opération terminée.")
+            elif choice == "8":
+                print("\nProgramme terminé, merci d'avoir utilisé ce système !")
+                break
+            else:
+                print("Entrée invalide, veuillez sélectionner un numéro d'opération valide !")
+        except Exception as e:
+            print(f"Erreur lors de l'exécution de l'opération : {e}")
+
+# Démarrer le programme principal
+if __name__ == "__main__":
+    main()
