@@ -1,0 +1,106 @@
+def parent(i):
+    if i <= 0:
+        raise ValueError("Indice hors limites")
+    return (i - 1) // 2
+
+def right(i, heap_size):
+    r = 2 * i + 2
+    if i >= heap_size or r >= heap_size:
+        return -1
+    return r
+
+def left(i, heap_size):
+    l = 2 * i + 1
+    if i >= heap_size or l >= heap_size:
+        return -1
+    return l
+
+def heapify_max(A, i, heap_size):
+    r = right(i, heap_size)
+    l = left(i, heap_size)
+    largest = i
+
+    if l != -1 and A[largest]["priorité"] < A[l]["priorité"]:
+        largest = l
+    if r != -1 and A[largest]["priorité"] < A[r]["priorité"]:
+        largest = r
+
+    if largest != i:
+        A[i], A[largest] = A[largest], A[i]
+        heapify_max(A, largest, heap_size)
+
+def build_max_heap(A):
+    heap_size = len(A)
+    for i in range((heap_size // 2) - 1, -1, -1):
+        heapify_max(A, i, heap_size)
+
+def construction_liste():
+    A = []
+    while True:
+        les_détails = input("Entrez les données (format : nom priorité temps) ou 'fini' pour terminer :")
+        if les_détails.lower() == "fini":
+            break
+        try:
+            name, priorité, temps = les_détails.split()
+            priorité = int(priorité)
+            temps = float(temps)
+            A.append({"name": name, "priorité": priorité, "temps": temps})
+        except ValueError:
+            print("Format invalide, veuillez entrer : 'nom priorité temps'.")
+    build_max_heap(A)
+    return A
+
+def extract_max(A):
+    if len(A) == 0:
+        raise ValueError("Le tas est vide, impossible d'extraire le maximum")
+    max_element = A[0]
+    A[0] = A[-1]
+    A.pop()
+    heapify_max(A, 0, len(A))
+    return max_element
+
+def increase_key(A, i, new_key):
+    if new_key["priorité"] < A[i]["priorité"]:
+        raise ValueError("La nouvelle clé a une priorité inférieure à la clé actuelle")
+    A[i] = new_key
+    while i > 0 and A[parent(i)]["priorité"] < A[i]["priorité"]:
+        A[i], A[parent(i)] = A[parent(i)], A[i]
+        i = parent(i)
+
+def insert_heap(A, key):
+    A.append({"name": "", "priorité": float("-inf"), "temps": 0})
+    increase_key(A, len(A) - 1, key)
+
+def main():
+    print("Système de tas activé")
+    A = construction_liste()
+    print("Tas max initial :", A)
+
+    while True:
+        print("\n1 : Extraire l'élément maximum\n2 : Insérer un nouvel élément\n3 : Quitter")
+        choice = input("Entrez le numéro de l'opération :")
+        if choice == "1":
+            try:
+                max_element = extract_max(A)
+                print("Élément maximum extrait :", max_element)
+                print("Tas mis à jour :", A)
+            except ValueError as e:
+                print(e)
+        elif choice == "2":
+            try:
+                name = input("Entrez le nom :")
+                priorité = int(input("Entrez la priorité :"))
+                temps = float(input("Entrez le temps :"))
+                key = {"name": name, "priorité": priorité, "temps": temps}
+                insert_heap(A, key)
+                print("Tas mis à jour :", A)
+            except ValueError as e:
+                print(e)
+        elif choice == "3":
+            print("Programme terminé")
+            break
+        else:
+            print("Option invalide, veuillez réessayer.")
+
+if __name__ == "__main__":
+    main()
